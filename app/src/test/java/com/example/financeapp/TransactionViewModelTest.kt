@@ -1,13 +1,35 @@
 package com.example.financeapp
 
+import com.example.financeapp.data.FakeTransactionDao
+import com.example.financeapp.data.TransactionRepository
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.setMain
+import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
+import org.junit.Before
 import org.junit.Test
 
 class TransactionViewModelTest {
+    private lateinit var dao: FakeTransactionDao
+    private lateinit var viewModel: TransactionViewModel
+
+    @Before
+    fun setUp() {
+        Dispatchers.setMain(UnconfinedTestDispatcher())
+        dao = FakeTransactionDao()
+        viewModel = TransactionViewModel(TransactionRepository(dao))
+    }
+
+    @After
+    fun tearDown() {
+        Dispatchers.resetMain()
+    }
+
     @Test
     fun amountWithLetters_isIgnored() {
-        val viewModel = TransactionViewModel()
-
         viewModel.onEvent(MainUiEvent.AmountChanged("12a"))
         assertEquals("", viewModel.uiState.amount)
 
@@ -16,20 +38,18 @@ class TransactionViewModelTest {
     }
 
     @Test
-    fun emptyDescription_setsInvalidInputError() {
-        val viewModel = TransactionViewModel()
+    fun emptyDescription_setsInvalidInputError_andSavesNothing() {
         viewModel.onEvent(MainUiEvent.AmountChanged("100"))
         viewModel.onEvent(MainUiEvent.DescriptionChanged("   "))
 
         viewModel.addTransaction()
 
         assertEquals(TransactionError.INVALID_INPUT, viewModel.uiState.error)
-        assertEquals(0, viewModel.uiState.transactionCount)
+        assertTrue(dao.inserted.isEmpty())
     }
 
     @Test
     fun emptyAmount_setsInvalidInputError() {
-        val viewModel = TransactionViewModel()
         viewModel.onEvent(MainUiEvent.DescriptionChanged("Кофе"))
 
         viewModel.addTransaction()
@@ -39,50 +59,39 @@ class TransactionViewModelTest {
 
     @Test
     fun hugeAmount_setsAmountTooLargeError() {
-        val viewModel = TransactionViewModel()
         viewModel.onEvent(MainUiEvent.AmountChanged("99999999999"))
         viewModel.onEvent(MainUiEvent.DescriptionChanged("Техника"))
 
         viewModel.addTransaction()
 
         assertEquals(TransactionError.AMOUNT_TOO_LARGE, viewModel.uiState.error)
-        assertEquals(0, viewModel.uiState.balance)
+        assertTrue(dao.inserted.isEmpty())
     }
 
     @Test
-    fun expense_thenIncome_updatesBalanceHistoryAndCount() {
-        val viewModel = TransactionViewModel()
-
+    fun expense_isSaved_andDraftIsCleared() {
         viewModel.onEvent(MainUiEvent.AmountChanged("250"))
         viewModel.onEvent(MainUiEvent.DescriptionChanged("Кофе"))
+
         viewModel.addTransaction()
 
-        assertEquals(-250, viewModel.uiState.balance)
-        assertEquals(1, viewModel.uiState.transactions.size)
-        assertEquals(1, viewModel.uiState.transactionCount)
+        assertEquals(1, dao.inserted.size)
+        assertEquals(25_000L, dao.inserted.single().amountMinor)
+        assertEquals("EXPENSE", dao.inserted.single().type)
         assertEquals("", viewModel.uiState.amount)
         assertEquals("", viewModel.uiState.description)
+        assertEquals(null, viewModel.uiState.error)
+    }
 
+    @Test
+    fun income_isSaved_withSelectedType() {
         viewModel.onEvent(MainUiEvent.TypeChanged(TransactionType.INCOME))
         viewModel.onEvent(MainUiEvent.AmountChanged("500"))
         viewModel.onEvent(MainUiEvent.DescriptionChanged("Зарплата"))
+
         viewModel.addTransaction()
 
-        assertEquals(250, viewModel.uiState.balance)
-        assertEquals(2, viewModel.uiState.transactionCount)
-    }
-
-    @Test
-    fun overflowingBalance_keepsPreviousBalance() {
-        val state = MainUiState(balance = Int.MAX_VALUE)
-
-        val result = reduce(
-            state,
-            MainUiEvent.AddTransaction(Transaction(1, TransactionType.INCOME, "Лотерея")),
-        )
-
-        assertEquals(Int.MAX_VALUE, result.balance)
-        assertEquals(0, result.transactionCount)
-        assertEquals(TransactionError.AMOUNT_TOO_LARGE, result.error)
+        assertEquals("INCOME", dao.inserted.single().type)
+        assertEquals(50_000L, dao.inserted.single().amountMinor)
     }
 }

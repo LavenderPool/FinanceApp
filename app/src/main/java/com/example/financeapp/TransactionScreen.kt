@@ -19,17 +19,22 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.financeapp.data.MINOR_UNITS_PER_RUBLE
 
 @Composable
 @Suppress("FunctionNaming")
-internal fun TransactionScreen(viewModel: TransactionViewModel = viewModel()) {
+internal fun TransactionScreen(viewModel: TransactionViewModel = viewModel(factory = TransactionViewModel.Factory)) {
     val state = viewModel.uiState
+    val balanceMinor by viewModel.balanceMinor.collectAsStateWithLifecycle()
+    val transactions by viewModel.transactions.collectAsStateWithLifecycle()
 
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -43,14 +48,17 @@ internal fun TransactionScreen(viewModel: TransactionViewModel = viewModel()) {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(space = 16.dp),
         ) {
-            BalanceHeader(balance = state.balance, transactionCount = state.transactionCount)
+            BalanceHeader(
+                balance = balanceMinor / MINOR_UNITS_PER_RUBLE,
+                transactionCount = transactions.size,
+            )
             TransactionForm(
                 state = state,
                 onEvent = viewModel::onEvent,
                 onAdd = viewModel::addTransaction,
             )
             TransactionHistory(
-                transactions = state.transactions,
+                transactions = transactions,
                 modifier = Modifier.weight(1f),
             )
         }
@@ -59,7 +67,7 @@ internal fun TransactionScreen(viewModel: TransactionViewModel = viewModel()) {
 
 @Composable
 @Suppress("FunctionNaming")
-private fun BalanceHeader(balance: Int, transactionCount: Int) {
+private fun BalanceHeader(balance: Long, transactionCount: Int) {
     Text(
         text = stringResource(R.string.balance_summary, balance, transactionCount),
         style = MaterialTheme.typography.headlineSmall,
@@ -128,7 +136,7 @@ private fun TransactionHistory(transactions: List<Transaction>, modifier: Modifi
                 style = MaterialTheme.typography.titleMedium,
             )
         }
-        items(transactions.asReversed()) { transaction ->
+        items(transactions) { transaction ->
             Text(
                 text = stringResource(
                     R.string.transaction_history_item,
