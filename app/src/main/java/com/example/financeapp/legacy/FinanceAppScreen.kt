@@ -1,4 +1,4 @@
-package com.example.financeapp
+package com.example.financeapp.legacy
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -21,6 +21,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.example.financeapp.FinanceAppTheme
+import com.example.financeapp.R
 
 private const val INCOME_AMOUNT = 500
 private const val EXPENSE_AMOUNT = 250
