@@ -3,4 +3,13 @@
     <string name="balance_summary">Баланс: %1$d ₽\nОпераций: %2$d</string>
     <string name="add_income_button">Добавить доход 500 ₽</string>
     <string name="add_expense_button">Добавить расход 250 ₽</string>
+    <string name="transaction_amount">Сумма, ₽</string>
+    <string name="transaction_description">Описание</string>
+    <string name="transaction_type_income">Доход</string>
+    <string name="transaction_type_expense">Расход</string>
+    <string name="transaction_add_button">Добавить</string>
+    <string name="transaction_history_title">История</string>
+    <string name="transaction_history_item">%1$s · %2$s · %3$d ₽</string>
+    <string name="transaction_invalid_input">Заполните сумму и описание</string>
+    <string name="transaction_amount_too_large">Сумма слишком большая</string>
 </resources>
