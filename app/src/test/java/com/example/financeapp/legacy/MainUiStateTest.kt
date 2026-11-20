@@ -1,4 +1,4 @@
-package com.example.financeapp
+package com.example.financeapp.legacy
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows

@@ -1,31 +1,42 @@
 package com.example.financeapp
 
-private const val INITIAL_BALANCE = 25_000
-
-internal data class MainUiState(
-    val balance: Int = INITIAL_BALANCE,
-    val transactionCount: Int = 0,
-)
-
 internal enum class TransactionType { INCOME, EXPENSE }
 
-internal data class Transaction(val amount: Int, val type: TransactionType)
+internal enum class TransactionError { INVALID_INPUT, AMOUNT_TOO_LARGE }
+
+internal data class Transaction(
+    val amount: Int,
+    val type: TransactionType,
+    val description: String,
+)
+
+internal data class MainUiState(
+    val amount: String = "",
+    val description: String = "",
+    val type: TransactionType = TransactionType.EXPENSE,
+    val error: TransactionError? = null,
+)
 
 internal sealed interface MainUiEvent {
-    data class AddTransaction(val transaction: Transaction) : MainUiEvent
+    data class AmountChanged(val value: String) : MainUiEvent
+    data class DescriptionChanged(val value: String) : MainUiEvent
+    data class TypeChanged(val type: TransactionType) : MainUiEvent
+    data object InvalidTransaction : MainUiEvent
+    data object AmountTooLarge : MainUiEvent
+    data object TransactionSaved : MainUiEvent
 }
 
 internal fun reduce(state: MainUiState, event: MainUiEvent): MainUiState = when (event) {
-    is MainUiEvent.AddTransaction -> {
-        val transaction = event.transaction
-        require(transaction.amount > 0) { "Transaction amount must be positive" }
-        val change = when (transaction.type) {
-            TransactionType.INCOME -> transaction.amount
-            TransactionType.EXPENSE -> -transaction.amount
-        }
-        state.copy(
-            balance = state.balance + change,
-            transactionCount = state.transactionCount + 1,
-        )
-    }
+    is MainUiEvent.AmountChanged -> changeAmount(state, event.value)
+    is MainUiEvent.DescriptionChanged -> state.copy(description = event.value, error = null)
+    is MainUiEvent.TypeChanged -> state.copy(type = event.type, error = null)
+    MainUiEvent.InvalidTransaction -> state.copy(error = TransactionError.INVALID_INPUT)
+    MainUiEvent.AmountTooLarge -> state.copy(error = TransactionError.AMOUNT_TOO_LARGE)
+    MainUiEvent.TransactionSaved -> state.copy(amount = "", description = "", error = null)
+}
+
+private fun changeAmount(state: MainUiState, value: String): MainUiState = if (value.all(Char::isDigit)) {
+    state.copy(amount = value, error = null)
+} else {
+    state
 }
