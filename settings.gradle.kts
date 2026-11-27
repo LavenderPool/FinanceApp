@@ -51,3 +51,5 @@ dependencyResolutionManagement {
 
 rootProject.name = "FinanceApp"
 include(":app")
+
+include(":coroutine-practice")
